@@ -2,8 +2,8 @@
 % Compare mechanisms small OVOC yeilds
 clear
 close all
-VOC_M = {'C5H8','APINENE','LIMONENE'};%the name for precursos in MCM
-VOC_G = {'ISOP','MTPA','LIMO'};%the name for precursos in Geos-Chem
+VOC_M = {'C5H8','APINENE','LIMONENE'};%the name for precursos in MCM ,'APINENE','LIMONENE'
+VOC_G = {'ISOP','API','LIM'};%the name for precursos in Geos-Chem(old :'ISOP','API','LIM' new:'ISOP','MTPA','LIMO') ,'MTPA','LIMO'
 
 
 for v = 1:size(VOC_M,2)%for loop for 3 precursors
@@ -22,7 +22,7 @@ Thanks to J. Kaiser for compiling these observations and to all the hard-working
 
 load Obs_SOAS_CampaignAvg_60min.mat %Since we simulate the yield during a day. Therefore we refer to the example_dielcaycle
 
-NO2conc = [0.01,0.5,1];
+NO2conc = [0.01,0.1,1];
 Yield_M =zeros(10,4,size(NO2conc,2));%store the Yield for MCM,each dim3 represent a Nox concentration(with endpointonly=0,)
 %The size of Yield_M will change later, it will have 1728 rows finally 
 Yield_G = zeros(10,4,size(NO2conc,2));%store the Yield for Geos_Chem
@@ -44,7 +44,7 @@ switch MECHANISM{i}
     case {'MCMv331'}
         nJNO2 = 'J4'; nJO3 = 'J1';
     case {'GEOSCHEM'}
-        nJNO2 = 'JNO2'; nJO3 = 'JO1D';
+        nJNO2 = 'JNO2'; nJO3 = 'JO3';
     otherwise
         error(['Invalid mechanism "' mechanism '".'])
 end
@@ -138,7 +138,7 @@ switch MECHANISM{i}
         ChemFiles = {...
             'GEOSCHEM_K(Met)';...
             'GEOSCHEM_J(Met,2)';...
-            'GeosChem1207AllRxns'};
+            'GEOSCHEM_AllRxns'};
         
 end
 
@@ -165,7 +165,7 @@ BkgdConc = {'DEFAULT'       0};
 ModelOptions.Verbose        = 1;
 ModelOptions.EndPointsOnly  = 0;%so that we get the conc of each small time interval to calculate the tOH
 ModelOptions.LinkSteps      = 1;
-ModelOptions.Repeat         = 1;
+% ModelOptions.Repeat         = 1;
 ModelOptions.IntTime        = 3600; %3600 seconds/hour 
 ModelOptions.TimeStamp      = SOAS.Time(9:18);
 ModelOptions.SavePath       = ['OVOCoutput_' MECHANISM{i} '_2'];
@@ -192,6 +192,7 @@ switch MECHANISM{i}
   end
   
   S.Conc.OH = table2(:,1);
+  OH_Conc_MCM=S.Conc.OH;
   Time = table2(:,2);
 
   Area = 0;%initialzie the area
@@ -203,7 +204,7 @@ OHtime = 1;
       [row,~] = find(Time == 60*60*t);%Find the concentration of OH at the ending of each hour.
       for r = row_old:(row(end)-1)% for each time interval
           Area = Area+(((S.Conc.OH(r)+S.Conc.OH(r+1)) .* (Time(r+1)-Time(r)))./2);%trapezoid
-          OHt = (Area./3600)./((0.4.*10^(-3)*8.314*SOAS.T(t+8)/(6.023*SOAS.P(t+8))));%Calculate the OHt(supposed that the T and P are unchanged in 1 hour)
+          OHt = (Area./3600)./((0.4.*10^(-3)*8.314*SOAS.T(t+8)/(6.023*SOAS.P(t+8))))%Calculate the OHt(supposed that the T and P are unchanged in 1 hour)
           if round(OHt)== OHtime%find the actual time of OHt = 1:10
               actual_time_M(OHtime,j) = Time(r);
               OHtime=OHtime+1;
@@ -226,6 +227,7 @@ OHtime = 1;
   end
   
   S.Conc.OH = table2(:,1);
+  OH_Conc_GEO=S.Conc.OH;
   Time = table2(:,2);
   Area = 0;%initialzie the area
   row_old = 1;
@@ -257,32 +259,32 @@ switch MECHANISM{i}
       
 
 
-      HCHOrates_M = PlotRates('HCHO',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCHO.There are only 
+      HCHOrates_M = PlotRates('HCHO',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCHO.There are only 
       HCHOprodRate_M = sum(HCHOrates_M.Prod,2);% get the producation rate of HCHO for each time interval(s)
       close all%we don't need the plot rate picture
-      HCOOHrates_M = PlotRates('HCOOH',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCOOH
+      HCOOHrates_M = PlotRates('HCOOH',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCOOH
       HCOOHprodRate_M = sum(HCOOHrates_M.Prod,2);% get the producation rate of HCOOH for each time interval(s)
       close all%we don't need the plot rate picture
-      GLYOXrates_M = PlotRates('GLYOX',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of GLYOX
+      GLYOXrates_M = PlotRates('GLYOX',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of GLYOX
       GLYOXprodRate_M = sum(GLYOXrates_M.Prod ,2);% gget the producation rate of GLYOX for each time interval(s)
       close all%we don't need the plot rate picture
-      CH3COCH3rates_M = PlotRates('CH3COCH3',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of CH3COCH3
+      CH3COCH3rates_M = PlotRates('CH3COCH3',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of CH3COCH3
       CH3COCH3prodRate_M = sum(CH3COCH3rates_M.Prod,2);% get the producation rate of CH3COCH3 for each time interval(s)
       close all%we don't need the plot rate picture
 
   case 'GEOSCHEM'
   
       
-      HCHOrates_G = PlotRates('CH2O',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCHO
+      HCHOrates_G = PlotRates('CH2O',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCHO
       HCHOprodRate_G = sum(HCHOrates_G.Prod ,2);% get the producation rate of HCHO for each time interval(s)
       close all%we don't need the plot rate picture
-      HCOOHrates_G = PlotRates('HCOOH',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCOOH
+      HCOOHrates_G = PlotRates('HCOOH',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of HCOOH
       HCOOHprodRate_G = sum(HCOOHrates_G.Prod,2);% get the producation rate of HCOOH each time interval(s)
       close all%we don't need the plot rate picture
-      GLYOXrates_G = PlotRates('GLYX',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of GLYOX
+      GLYOXrates_G = PlotRates('GLYX',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of GLYOX
       GLYOXprodRate_G =sum(GLYOXrates_G.Prod ,2);% get the producation rate of GLYOX each time interval(s)
       close all%we don't need the plot rate picture
-      CH3COCH3rates_G = PlotRates('ACET',S,1,'unit','ppb_s','sumEq',1);%get hte loss and production rate of CH3COCH3
+      CH3COCH3rates_G = PlotRates('ACET',S,5,'unit','ppb_s','sumEq',1);%get hte loss and production rate of CH3COCH3
       CH3COCH3prodRate_G = sum(CH3COCH3rates_G.Prod ,2);% get the producation rate CH3COCH3 each time interval(s)     
       close all%we don't need the plot rate picture
       
@@ -400,16 +402,14 @@ title(head);
 text = ['HCHO Yield(with' VOC_M{v} ').png'];
 set(gca, 'YScale', 'log');
 yticks([0.1,0.5,1]);
-yticklabels({'0.1','0.5','1'});
+yticklabels({'0.1','0.5','1'})
 saveas(gcf,text);
 
 figure
 contour([1:1:10],NO2conc,HCOOH_Yield_M','r','ShowText','on');
 hold on
 contour([1:1:10],NO2conc,HCOOH_Yield_G','b','ShowText','on');
-set(gca, 'YScale', 'log');
-yticks([0.1,0.5,1]);
-yticklabels({'0.1','0.5','1'});
+set(gca, 'YScale', 'log')
 legend('MCMv331','GeosChem');
 xlabel('OH Exposure Time (h)')
 ylabel('NOx(ppbv)');
@@ -423,8 +423,6 @@ contour([1:1:10],NO2conc,GLYOX_Yield_M','r','ShowText','on');
 hold on
 contour([1:1:10],NO2conc,GLYOX_Yield_G','b','ShowText','on');
 set(gca, 'YScale', 'log')
-yticks([0.1,0.5,1]);
-yticklabels({'0.1','0.5','1'});
 legend('MCMv331','GeosChem');
 xlabel('OH Exposure Time (h)')
 ylabel('NOx(ppbv)');
@@ -438,8 +436,6 @@ contour([1:1:10],NO2conc,CH3COCH3_Yield_M','r','ShowText','on');
 hold on
 contour([1:1:10],NO2conc,CH3COCH3_Yield_G','b','ShowText','on');
 set(gca, 'YScale', 'log')
-yticks([0.1,0.5,1]);
-yticklabels({'0.1','0.5','1'});
 legend('MCMv331','GeosChem');
 xlabel('OH Exposure Time (h)')
 ylabel('NOx(ppbv)');
@@ -450,3 +446,12 @@ saveas(gcf,text);
 
 
 end%End for VOC precursors
+
+%% test
+figure 
+plot([1:1:size(OH_Conc_MCM)],OH_Conc_MCM);
+hold on
+plot([1:1:size(OH_Conc_GEO)],OH_Conc_GEO);
+ylim([0,0.025]);
+legend('MCM','Old GEOSCHEM')
+title('new F0AM OH Conc over real time');
